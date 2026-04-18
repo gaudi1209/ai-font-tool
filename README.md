@@ -1,4 +1,4 @@
-# AI 字体生产工具
+# 高迪书法字库_ AI字体工具
 
 基于 [zi2zi-JiT](https://github.com/kaonashi-tyc/zi2zi-JiT) 的 AI 字体训练、字库生字、OCR 验证 Web 应用。通过 LoRA 微调学习手写字体风格，批量生成高质量书法字体图片，图片命名遵循 FontLab / FontForge 格式，批量导入即可成字。
 
