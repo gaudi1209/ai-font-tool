@@ -1,4 +1,21 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+
+# 临时文件和输出
 temp/
 *.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 环境变量（含个人路径）
+.env
+
+# IDE
+.vscode/
+.idea/

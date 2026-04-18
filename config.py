@@ -4,17 +4,23 @@
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ZI2ZI_DIR = r"D:\Claudecode\字体训练\zi2zi-JiT-main"
+
+# 可通过环境变量覆盖路径（或创建 .env 文件）
+def _env(key, default):
+    return os.environ.get(key, default)
+
+# zi2zi-JiT 引擎目录
+ZI2ZI_DIR = _env("ZI2ZI_DIR", r"D:\Claudecode\字体训练\zi2zi-JiT-main")
 
 # Python 环境
-ZI2ZI_PYTHON = r"C:\Users\chenlin\.conda\envs\zi2zi-jit\python.exe"
-OCR_PYTHON = r"D:\Claudecode\paddle-ocr\venv\Scripts\python.exe"
+ZI2ZI_PYTHON = _env("ZI2ZI_PYTHON", r"C:\Users\chenlin\.conda\envs\zi2zi-jit\python.exe")
+OCR_PYTHON = _env("OCR_PYTHON", r"D:\Claudecode\paddle-ocr\venv\Scripts\python.exe")
 SYSTEM_PYTHON = "python"
 
 # 默认路径
 DEFAULT_BASE_CHECKPOINT = os.path.join(ZI2ZI_DIR, "models", "zi2zi-JiT-B-16.pth")
 DEFAULT_SOURCE_FONT = os.path.join(ZI2ZI_DIR, "data", "font", "WenJinMinchoP0-Regular.ttf")
-DEFAULT_REF_FONT = r"C:\Users\chenlin\Desktop\2026工作文件\高迪书法_行书V5\OpenType-TT\高迪书法_行书V5-Regular.260415-0920.ttf"
+DEFAULT_REF_FONT = _env("DEFAULT_REF_FONT", "")
 DEFAULT_RUN_DIR = os.path.join(ZI2ZI_DIR, "run")
 
 # 训练默认参数
