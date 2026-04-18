@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}AI字库生字 - AI字体工具{% endblock %}
+
+{% block extra_css %}
+<style>
+.result-grid {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 15px;
+    background: #3a3a3a;
+}
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 10px;
+}
+.gen-card {
+    background: #e8e4df;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+}
+.gen-card-img {
+    width: 100%;
+    padding-bottom: 100%;
+    position: relative;
+    background: #000;
+    flex-shrink: 0;
+}
+.gen-card-img img {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.gen-card-name {
+    padding: 3px 5px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="gen-layout">
+    <!-- 工具栏 -->
+    <div class="gen-toolbar">
+        <div class="gen-tabs">
+            <button class="gen-tab active" onclick="switchTab(0)">文本输入</button>
+            <button class="gen-tab" onclick="switchTab(1)">TTF+文本</button>
+            <button class="gen-tab" onclick="switchTab(2)">TTF+字符集</button>
+            <button class="gen-tab" onclick="switchTab(3)">失败重试</button>
+        </div>
+        <div class="gen-config">
+            <div class="path-row" style="margin:0">
+                <label>AI模型:</label>
+                <input type="text" id="checkpoint" data-persist value="D:\Claudecode\字体训练\zi2zi-JiT-main\run\gaudi_xingshu_v6\checkpoint-last.pth">
+                <button class="btn-browse" onclick="browseFile('checkpoint',['.pth'])">浏览</button>
+            </div>
+            <label>倍数:</label>
+            <input type="number" id="multiplier" value="5" min="1" max="20" style="width:50px">
+            <label>轮次:</label>
+            <input type="number" id="maxRounds" value="10" min="1" max="50" style="width:50px">
+            <label>阈值:</label>
+            <input type="number" id="threshold" value="0.5" step="0.05" min="0" max="1" style="width:60px">
+            <label>CFG:</label>
+            <input type="number" id="cfg" value="4" step="0.1" style="width:60px">
+        </div>
+        <div class="gen-actions">
+            <button class="btn btn-primary" onclick="startGenerate()">开始生成</button>
+            <button class="btn btn-danger" onclick="stopGenerate()">停止</button>
+            <button class="btn btn-secondary" onclick="openResultDir()">打开目录</button>
+            <button class="btn btn-secondary" onclick="addSuffix()" title="uni4E00.png → uni4E00_一.png">加汉字后缀</button>
+            <button class="btn btn-secondary" onclick="removeSuffix()" title="uni4E00_一.png → uni4E00.png">去汉字后缀</button>
+        </div>
+    </div>
+
+    <!-- 内容区 -->
+    <div class="gen-content">
+        <!-- 左侧输入面板 -->
+        <div class="gen-input-panel">
+            <!-- Tab 0: 文本输入 -->
+            <div class="tab-content active" id="tab0">
+                <h4 style="font-size:14px;color:#4a4a4a">直接粘贴字符</h4>
+                <textarea id="charInput" placeholder="在此粘贴需要生成的汉字..."></textarea>
+                <div class="char-count" id="charCount">0 个字符</div>
+                <div class="path-row">
+                    <label>输出目录:</label>
+                    <input type="text" id="outputDir0" data-persist placeholder="输出目录路径">
+                    <button class="btn-browse" onclick="browseDir('outputDir0')">浏览</button>
+                </div>
+            </div>
+
+            <!-- Tab 1: TTF+文本 -->
+            <div class="tab-content" id="tab1">
+                <h4 style="font-size:14px;color:#4a4a4a">TTF + 文本文件计算缺失</h4>
+                <div class="path-row">
+                    <label>TTF路径:</label>
+                    <input type="text" id="ttfPath1" data-persist placeholder="字体TTF文件路径">
+                    <button class="btn-browse" onclick="browseFile('ttfPath1',['.ttf','.otf'])">浏览</button>
+                </div>
+                <div class="path-row">
+                    <label>文本文件:</label>
+                    <input type="text" id="textFile1" data-persist placeholder="txt/docx/mobi/epub/pdf 文件路径">
+                    <button class="btn-browse" onclick="browseFile('textFile1',['.txt','.docx','.mobi','.epub','.pdf'])">浏览</button>
+                </div>
+                <button class="btn btn-secondary" onclick="calcMissing()" style="font-size:12px;padding:6px 12px">计算缺失字符</button>
+                <div id="missingResult1" class="group-info" style="display:none"></div>
+                <textarea id="textDisplay1" placeholder="缺失字符将显示在此处..." readonly style="height:120px;font-size:16px;background:#faf8f5"></textarea>
+                <div class="char-count" id="missingCount1">0 个缺失字符</div>
+                <div class="path-row">
+                    <label>输出目录:</label>
+                    <input type="text" id="outputDir1" data-persist placeholder="输出目录路径">
+                    <button class="btn-browse" onclick="browseDir('outputDir1')">浏览</button>
+                </div>
+            </div>
+
+            <!-- Tab 2: TTF+字符集 -->
+            <div class="tab-content" id="tab2">
+                <h4 style="font-size:14px;color:#4a4a4a">TTF + 字符集差集分组</h4>
+                <div class="path-row">
+                    <label>TTF路径:</label>
+                    <input type="text" id="ttfPath2" data-persist placeholder="字体TTF文件路径">
+                    <button class="btn-browse" onclick="browseFile('ttfPath2',['.ttf','.otf'])">浏览</button>
+                </div>
+                <div class="param-row">
+                    <label>字符集:</label>
+                    <select id="charsetSelect">
+                        <option value="GB2312">GB2312 (6763字)</option>
+                        <option value="GBK">GBK (20902字)</option>
+                        <option value="Big5">Big5 (13053字)</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" onclick="calcDiffGroups()" style="font-size:12px;padding:6px 12px">计算差集</button>
+                <div id="diffResult2" class="group-info" style="display:none"></div>
+                <div id="groupQueue2" style="display:none;margin-top:8px;max-height:250px;overflow-y:auto">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                        <label style="font-size:12px;color:#666;cursor:pointer">
+                            <input type="checkbox" id="selectAllGroups" onchange="toggleAllGroups(this.checked)"> 全选
+                        </label>
+                        <span id="selectedGroupCount" style="font-size:11px;color:#999"></span>
+                    </div>
+                    <div id="groupCheckboxes"></div>
+                </div>
+                <div class="path-row">
+                    <label>输出目录:</label>
+                    <input type="text" id="outputDir2" data-persist placeholder="输出目录路径">
+                    <button class="btn-browse" onclick="browseDir('outputDir2')">浏览</button>
+                </div>
+            </div>
+
+            <!-- Tab 3: 失败重试 -->
+            <div class="tab-content" id="tab3">
+                <h4 style="font-size:14px;color:#4a4a4a">粘贴迭代失败字符</h4>
+                <textarea id="failInput" placeholder="粘贴失败的字符列表..."></textarea>
+                <div class="path-row">
+                    <label>源目录:</label>
+                    <input type="text" id="sourceDir3" data-persist placeholder="之前迭代的输出目录">
+                    <button class="btn-browse" onclick="browseDir('sourceDir3')">浏览</button>
+                </div>
+                <div class="path-row">
+                    <label>输出目录:</label>
+                    <input type="text" id="outputDir3" data-persist placeholder="输出目录路径">
+                    <button class="btn-browse" onclick="browseDir('outputDir3')">浏览</button>
+                </div>
+            </div>
+
+            <!-- 页面导航 - 位于面板底部 -->
+            <div class="nav-buttons" style="margin-top:auto;padding-top:15px;border-top:1px solid #e0ddd8">
+                <button class="nav-btn" onclick="location.href='/train'">模型训练</button>
+                <button class="nav-btn active">字库生字</button>
+                <button class="nav-btn" onclick="location.href='/ocr'">OCR识别</button>
+            </div>
+        </div>
+
+        <!-- 右侧结果区 -->
+        <div class="gen-result">
+            <div class="result-header">
+                <div class="result-stats">
+                    <span id="genProgress">0%</span> 进度
+                    <span id="genSuccess">0</span>/<span id="genTotal">0</span> 成功
+                    <span id="genRound">-</span> 轮次
+                    <span id="genTime">-</span> 耗时
+                </div>
+                <div class="result-progress">
+                    <div class="result-progress-fill" id="genProgressBar"></div>
+                </div>
+            </div>
+            <div class="result-grid" id="resultGrid">
+                <div class="image-grid" id="imageGrid"></div>
+            </div>
+            <div class="result-log" id="genLog">
+                <div style="color:#666">等待生成...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 复用浏览弹窗 -->
+<div id="browseModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(58,56,52,0.5);z-index:2000;align-items:center;justify-content:center">
+    <div style="background:#faf8f5;border-radius:8px;padding:20px;width:520px;max-height:70vh;display:flex;flex-direction:column;border:1px solid #e0ddd8">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="font-size:16px;color:#4a4a4a" id="browseTitle">选择文件</h3>
+            <button class="btn btn-primary" onclick="confirmBrowse()" style="padding:4px 14px;font-size:12px">确认</button>
+            <button class="btn btn-secondary" onclick="closeBrowse()" style="padding:4px 14px;font-size:12px">取消</button>
+        </div>
+        <div id="browseCurrent" style="font-size:11px;font-family:monospace;color:#8fa3b0;margin-bottom:8px;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e0ddd8;word-break:break-all"></div>
+        <input type="text" id="browseInput" style="width:100%;padding:8px 12px;border:1px solid #ddd8d0;border-radius:8px;font-size:12px;font-family:monospace;margin-bottom:8px" placeholder="手动输入路径后回车确认">
+        <div id="browseList" style="flex:1;overflow-y:auto;max-height:350px"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/generate.js') }}"></script>
+{% endblock %}

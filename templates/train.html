@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}AI模型训练 - AI字体工具{% endblock %}
+
+{% block extra_css %}
+<style>
+.test-card-grid-wrap {
+    flex: 1; min-height: 0; overflow: auto; padding: 20px; background: #3a3a3a;
+}
+.test-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 15px;
+}
+.test-card {
+    background: #e8e4df; border-radius: 4px; overflow: hidden;
+    display: flex; flex-direction: column; cursor: default;
+}
+.test-card .card-img {
+    width: 100%; padding-bottom: 100%; position: relative; background: #000; flex-shrink: 0;
+}
+.test-card .card-img img {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain;
+}
+.test-card .card-info {
+    padding: 6px 8px; display: flex; align-items: center;
+    justify-content: space-between; gap: 4px; font-size: 12px;
+}
+.test-card .card-text {
+    font-size: 22px; font-weight: 700; color: #4a4a4a; line-height: 1;
+    min-width: 24px; text-align: center;
+}
+.test-card .card-status {
+    font-size: 11px; padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+}
+.test-card .card-status.existing { background: #e8f0e8; color: #5a8a5a; }
+.test-card .card-status.new { background: #e8e0f0; color: #7a5a8a; }
+.test-section-label {
+    grid-column: 1 / -1; padding: 6px 0 4px; font-size: 13px;
+    font-weight: 600; color: #b0a898; border-bottom: 1px solid #555; margin-bottom: 4px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="train-layout">
+    <!-- 左侧参数面板 -->
+    <div class="train-panel">
+        <!-- 说明 -->
+        <div style="font-size:11px;color:#8fa3b0;padding:4px 0 8px 0;border-bottom:1px solid #e0ddd8;margin-bottom:10px">
+            本模型训练基于开源项目 <a href="https://github.com/kaonashi-tyc/zi2zi-JiT" target="_blank" style="color:#7ba3b0">zi2zi-JiT</a>
+        </div>
+        <!-- 路径配置 -->
+        <div class="param-group">
+            <h4>路径配置</h4>
+            <div class="path-row">
+                <label>基础模型</label>
+                <input type="text" id="baseCheckpoint" data-persist value="D:\Claudecode\字体训练\zi2zi-JiT-main\models\zi2zi-JiT-B-16.pth">
+                <button class="btn-browse" onclick="browseFile('baseCheckpoint',['.pth'])">浏览</button>
+            </div>
+            <div class="path-row">
+                <label>源字体</label>
+                <input type="text" id="sourceFont" data-persist value="D:\Claudecode\字体训练\zi2zi-JiT-main\data\font\WenJinMinchoP0-Regular.ttf">
+                <button class="btn-browse" onclick="browseFile('sourceFont',['.ttf','.otf'])">浏览</button>
+            </div>
+            <div class="path-row">
+                <label>学习字库TTF</label>
+                <input type="text" id="refFont" data-persist value="C:\Users\chenlin\Desktop\2026工作文件\高迪书法_行书V5\OpenType-TT\高迪书法_行书V5-Regular.260415-0920.ttf">
+                <button class="btn-browse" onclick="browseFile('refFont',['.ttf','.otf'])">浏览</button>
+            </div>
+            <div class="path-row">
+                <label>输出目录</label>
+                <input type="text" id="outputDir" data-persist value="D:\Claudecode\字体训练\zi2zi-JiT-main\run\gaudi_xingshu_v6">
+                <button class="btn-browse" onclick="browseDir('outputDir')">浏览</button>
+            </div>
+        </div>
+
+        <!-- 训练参数 -->
+        <div class="param-group">
+            <h4>训练参数</h4>
+            <div class="param-row">
+                <label>Epochs</label>
+                <input type="number" id="epochs" value="200" min="1">
+            </div>
+            <div class="param-row">
+                <label>Batch Size</label>
+                <input type="number" id="batchSize" value="64" min="1">
+            </div>
+            <div class="param-row">
+                <label>LoRA r</label>
+                <input type="number" id="loraR" value="32" min="1">
+            </div>
+            <div class="param-row">
+                <label>LoRA alpha</label>
+                <input type="number" id="loraAlpha" value="32" min="1">
+            </div>
+            <div class="param-row">
+                <label>CFG</label>
+                <input type="number" id="cfg" value="2.6" step="0.1">
+            </div>
+            <div class="param-row">
+                <label>num_fonts</label>
+                <input type="number" id="numFonts" value="1000" min="1">
+            </div>
+            <div class="param-row">
+                <label>num_chars</label>
+                <input type="number" id="numChars" value="200000" min="1">
+            </div>
+            <div class="param-row">
+                <label>max_chars/font</label>
+                <input type="number" id="maxCharsPerFont" value="10000" min="1">
+            </div>
+            <div class="param-row">
+                <label>num_workers</label>
+                <input type="number" id="numWorkers" value="0" min="0">
+            </div>
+        </div>
+
+        <!-- 准备数据选项 -->
+        <div class="param-group">
+            <h4>准备数据</h4>
+            <div class="param-row" style="align-items:center;gap:8px">
+                <label style="white-space:nowrap">取字数量</label>
+                <select id="charCountMode" onchange="toggleCharCountInput()" style="flex:1;padding:6px 10px;border:1px solid #ddd8d0;border-radius:4px;font-size:13px;background:#fff;color:#4a4a4a">
+                    <option value="800">800 字</option>
+                    <option value="3000">3000 字</option>
+                    <option value="all">全部</option>
+                    <option value="custom">手动输入</option>
+                </select>
+                <input type="number" id="charCountCustom" value="1000" min="1" style="width:90px;padding:6px 10px;border:1px solid #ddd8d0;border-radius:4px;font-size:13px;display:none" placeholder="字数">
+            </div>
+            <div class="btn-row" style="gap:8px">
+                <button class="btn btn-secondary" onclick="prepareData()" style="flex:1">准备数据</button>
+                <button class="btn btn-secondary" onclick="openPrepareDir()" style="flex:1">打开目录</button>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="startTraining()">开始训练</button>
+            <button class="btn btn-danger" onclick="stopTraining()">停止</button>
+        </div>
+
+        <!-- 继续训练 & 测试生成 -->
+        <div class="param-group" style="margin-top:4px">
+            <h4>继续训练 / 测试生成</h4>
+            <div class="path-row">
+                <label>Checkpoint</label>
+                <input type="text" id="lastCheckpoint" data-persist placeholder="选择 checkpoint-last.pth">
+                <button class="btn-browse" onclick="browseFile('lastCheckpoint',['.pth'])">浏览</button>
+            </div>
+            <div class="param-row">
+                <label>追加轮次</label>
+                <input type="number" id="continueEpochs" value="50" min="1">
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="continueTraining()" style="flex:1">继续训练</button>
+                <button class="btn btn-secondary" onclick="testGenerate()" style="flex:1">测试生成</button>
+            </div>
+        </div>
+
+        <!-- 页面导航 - 位于panel底部 -->
+        <div class="nav-buttons">
+            <button class="nav-btn active">模型训练</button>
+            <button class="nav-btn" onclick="location.href='/generate'">字库生字</button>
+            <button class="nav-btn" onclick="location.href='/ocr'">OCR识别</button>
+        </div>
+    </div>
+
+    <!-- 右侧监控区 -->
+    <div class="train-monitor">
+        <div class="monitor-header">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">就绪</span>
+            </div>
+            <div class="monitor-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="epochDisplay">0/0</div>
+                    <div class="stat-label">Epoch</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="lossDisplay">-</div>
+                    <div class="stat-label">Loss</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="lrDisplay">-</div>
+                    <div class="stat-label">LR</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="timeDisplay">-</div>
+                    <div class="stat-label">耗时</div>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+        <div class="log-terminal" id="logTerminal">
+            <div style="color: #666;">等待训练开始...</div>
+        </div>
+
+        <!-- 测试生成结果卡片区域 -->
+        <div id="testResultArea" style="display:none;flex:1;min-height:0;display:flex;flex-direction:column">
+            <div style="padding:8px 16px;background:#2d2d2d;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+                <span style="color:#b0a898;font-size:13px" id="testResultTitle">测试生成结果</span>
+                <button onclick="document.getElementById('testResultArea').style.display='none'" style="background:none;border:none;color:#888;cursor:pointer;font-size:16px">x</button>
+            </div>
+            <div class="test-card-grid-wrap">
+                <div id="testCardGrid" class="test-card-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 文件浏览弹窗 -->
+<div id="browseModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(58,56,52,0.5);z-index:2000;align-items:center;justify-content:center">
+    <div style="background:#faf8f5;border-radius:8px;padding:20px;width:520px;max-height:70vh;display:flex;flex-direction:column;border:1px solid #e0ddd8">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="font-size:16px;color:#4a4a4a" id="browseTitle">选择文件</h3>
+            <button class="btn btn-primary" onclick="confirmBrowse()" style="padding:4px 14px;font-size:12px">确认</button>
+            <button class="btn btn-secondary" onclick="closeBrowse()" style="padding:4px 14px;font-size:12px">取消</button>
+        </div>
+        <div id="browseCurrent" style="font-size:11px;font-family:monospace;color:#8fa3b0;margin-bottom:8px;padding:6px 10px;background:#fff;border-radius:8px;border:1px solid #e0ddd8;word-break:break-all"></div>
+        <input type="text" id="browseInput" style="width:100%;padding:8px 12px;border:1px solid #ddd8d0;border-radius:8px;font-size:12px;font-family:monospace;margin-bottom:8px" placeholder="手动输入路径">
+        <div id="browseList" style="flex:1;overflow-y:auto;max-height:350px"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/train.js') }}"></script>
+{% endblock %}

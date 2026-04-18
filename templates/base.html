@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI字体生产工具{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='images/高迪字库图标.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 标题栏 -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/高迪字库图标.png') }}" class="header-icon" alt="图标">
+        <img src="{{ url_for('static', filename='images/高迪字库工具题头.png') }}" class="header-title" alt="高迪字库工具">
+        <span class="header-subtitle">AI字体工具</span>
+    </div>
+    <div class="main-wrapper">
+        {% block content %}{% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
