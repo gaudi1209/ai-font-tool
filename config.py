@@ -5,7 +5,22 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 可通过环境变量覆盖路径（或创建 .env 文件）
+# 安装根目录（app/ 的上一级，适配一键安装包结构）
+INSTALL_ROOT = os.path.dirname(BASE_DIR)
+
+# 加载 .env 文件（安装脚本自动生成，不覆盖已有环境变量）
+_dotenv = os.path.join(INSTALL_ROOT, '.env')
+if os.path.isfile(_dotenv):
+    with open(_dotenv, 'r', encoding='utf-8') as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if not _line or _line.startswith('#') or '=' not in _line:
+                continue
+            _k, _v = _line.split('=', 1)
+            _k, _v = _k.strip(), _v.strip().strip('"').strip("'")
+            if _k not in os.environ:
+                os.environ[_k] = _v
+
 def _env(key, default):
     return os.environ.get(key, default)
 
