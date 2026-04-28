@@ -223,6 +223,7 @@ def diff_groups():
     ttf_path = params.get('ttf_path', '')
     charset_name = params.get('charset', 'GB2312')
     output_dir = params.get('output_dir', '')
+    export_group_size = params.get('export_group_size', 0)  # 导出txt的分组字数，0=不导出
 
     if not ttf_path:
         return jsonify({"success": False, "error": "请填写TTF路径"})
@@ -234,16 +235,23 @@ def diff_groups():
         missing = sorted(charset - font_chars)
         groups = split_into_groups(missing, 500)
 
-        # 每组输出单独的txt文件
-        group_files = []
-        if output_dir and os.path.isdir(output_dir):
-            for i, g in enumerate(groups):
-                txt_name = f"missing_{charset_name}_{i+1:02d}.txt"
-                txt_path = os.path.join(output_dir, txt_name)
-                chars_text = ''.join(chr(c) for c in g)
-                with open(txt_path, 'w', encoding='utf-8') as f:
-                    f.write(chars_text)
-                group_files.append({"index": i, "size": len(g), "file": txt_name, "chars": [chr(c) for c in g]})
+        # 导出带分组的txt文件（所有分组写在一个文件中）
+        export_file = None
+        if export_group_size > 0 and output_dir and os.path.isdir(output_dir):
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            txt_name = f"missing_{charset_name}_{timestamp}.txt"
+            txt_path = os.path.join(output_dir, txt_name)
+            export_groups = split_into_groups(missing, export_group_size)
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                for i, g in enumerate(export_groups):
+                    group_label = f"第{i + 1}组 ({len(g)}字)"
+                    f.write(f"{'=' * 40}\n")
+                    f.write(f"{group_label}\n")
+                    f.write(f"{'=' * 40}\n")
+                    f.write(''.join(chr(c) for c in g))
+                    f.write('\n\n')
+            export_file = txt_name
 
         return jsonify({
             "success": True,
@@ -252,7 +260,7 @@ def diff_groups():
             "font_size": len(font_chars & charset),
             "missing_count": len(missing),
             "groups": [{"index": i, "size": len(g), "chars": [chr(c) for c in g]} for i, g in enumerate(groups)],
-            "group_files": group_files,
+            "export_file": export_file,
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

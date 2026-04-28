@@ -62,10 +62,20 @@
             <button class="gen-tab" onclick="switchTab(3)">失败重试</button>
         </div>
         <div class="gen-config">
-            <div class="path-row" style="margin:0">
+            <div class="path-row" style="margin:0;margin-right:14px">
                 <label>AI模型:</label>
                 <input type="text" id="checkpoint" data-persist value="D:\Claudecode\字体训练\zi2zi-JiT-main\run\gaudi_xingshu_v6\checkpoint-last.pth">
                 <button class="btn-browse" onclick="browseFile('checkpoint',['.pth'])">浏览</button>
+            </div>
+            <div class="path-row" style="margin:0;margin-right:14px">
+                <label>基本字库:</label>
+                <input type="text" id="refFont" data-persist value="" placeholder="学习字库TTF路径（选填，默认用训练页配置）">
+                <button class="btn-browse" onclick="browseFile('refFont',['.ttf','.otf'])">浏览</button>
+            </div>
+            <div class="path-row" style="margin:0;margin-right:14px">
+                <label>扩展字库:</label>
+                <input type="text" id="extFont" data-persist value="" placeholder="覆盖扩展区字符（选填）">
+                <button class="btn-browse" onclick="browseFile('extFont',['.ttf','.otf'])">浏览</button>
             </div>
             <label>倍数:</label>
             <input type="number" id="multiplier" value="5" min="1" max="20" style="width:50px">
@@ -141,7 +151,14 @@
                         <option value="Big5">Big5 (13053字)</option>
                     </select>
                 </div>
-                <button class="btn btn-secondary" onclick="calcDiffGroups()" style="font-size:12px;padding:6px 12px">计算差集</button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-secondary" onclick="calcDiffGroups()" style="font-size:12px;padding:6px 12px">计算差集</button>
+                    <div style="display:flex;align-items:center;gap:4px">
+                        <label style="font-size:12px;color:#666">导出分组字数:</label>
+                        <input type="number" id="exportGroupSize" value="500" min="50" max="5000" step="50" style="width:70px;padding:3px 6px;font-size:12px;border:1px solid #ddd8d0;border-radius:4px">
+                        <button class="btn btn-secondary" onclick="exportDiffTxt()" style="font-size:12px;padding:6px 12px">导出TXT</button>
+                    </div>
+                </div>
                 <div id="diffResult2" class="group-info" style="display:none"></div>
                 <div id="groupQueue2" style="display:none;margin-top:8px;max-height:250px;overflow-y:auto">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">

@@ -237,10 +237,10 @@ body {
 }
 
 .path-row label {
-    width: 95px;
     font-size: 12px;
     color: #6a6a6a;
     flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .path-row input[type="text"] {

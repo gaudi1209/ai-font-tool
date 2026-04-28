@@ -143,6 +143,16 @@ class GenerateManager:
                 self.status = "completed"
                 return
 
+            # 校验字体路径
+            if not source_font or not os.path.isfile(source_font):
+                self.status = "error"
+                self.error_message = f"源字体路径无效：{source_font or '（未填写）'}，请在生成页面填写源字体路径"
+                return
+            if not ref_font or not os.path.isfile(ref_font):
+                self.status = "error"
+                self.error_message = f"学习字库路径无效：{ref_font or '（未填写）'}，请在生成页面填写学习字库TTF路径"
+                return
+
             # 预检查：移除源字体无法渲染的字符
             sys.path.insert(0, ZI2ZI_DIR)
             from data_processing.font_utils import GlyphRenderer
@@ -151,9 +161,9 @@ class GenerateManager:
             from fontTools.ttLib import TTFont
 
             src_renderer = GlyphRenderer(source_font, resolution)
-            # 扩展区 fallback 字体（宋体扩展B，覆盖 Ext B/C/D/E）
-            ext_font_path = r'C:\Windows\Fonts\simsunb.ttf'
-            ext_renderer = GlyphRenderer(ext_font_path, resolution) if os.path.exists(ext_font_path) else None
+            # 扩展区字库：前端传入优先，否则默认宋体扩展B
+            ext_font_path = params.get('ext_font', '') or r'C:\Windows\Fonts\simsunb.ttf'
+            ext_renderer = GlyphRenderer(ext_font_path, resolution) if os.path.isfile(ext_font_path) else None
 
             # 用 cmap 精确检查字符是否在字体中
             try:
@@ -224,7 +234,7 @@ class GenerateManager:
                 self.round_log.append(f"Round {round_num}: {len(pending)} 字待处理")
 
                 try:
-                    num_samples = self._create_npz(expanded, temp_npz, ref_font, source_font, resolution, ref_size)
+                    num_samples = self._create_npz(expanded, temp_npz, ref_font, source_font, resolution, ref_size, ext_font_path)
                     if num_samples == 0:
                         shutil.rmtree(work_dir, ignore_errors=True)
                         continue
@@ -291,7 +301,7 @@ class GenerateManager:
             self.status = "error"
             self.error_message = str(e)
 
-    def _create_npz(self, chars, output_path, ref_font, source_font, resolution, ref_size):
+    def _create_npz(self, chars, output_path, ref_font, source_font, resolution, ref_size, ext_font=''):
         """创建npz，源字体无法渲染的字符自动 fallback 到扩展区字体"""
         import numpy as np
         from PIL import Image
@@ -303,9 +313,9 @@ class GenerateManager:
         source_renderer = GlyphRenderer(source_font, resolution)
         ref_renderer = GlyphRenderer(ref_font, ref_size)
 
-        # 扩展区 fallback 字体
-        ext_font_path = r'C:\Windows\Fonts\simsunb.ttf'
-        ext_renderer = GlyphRenderer(ext_font_path, resolution) if os.path.exists(ext_font_path) else None
+        # 扩展区字库：使用传入的扩展字库，否则默认宋体扩展B
+        ext_font_path = ext_font or r'C:\Windows\Fonts\simsunb.ttf'
+        ext_renderer = GlyphRenderer(ext_font_path, resolution) if os.path.isfile(ext_font_path) else None
 
         # cmap 检查
         try:

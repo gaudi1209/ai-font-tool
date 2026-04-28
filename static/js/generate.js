@@ -96,6 +96,25 @@ async function calcDiffGroups() {
     } catch (e) { hideLoading(); }
 }
 
+async function exportDiffTxt() {
+    if (!diffGroups) { showToast('请先计算差集', 'error'); return; }
+    const ttfPath = document.getElementById('ttfPath2').value;
+    const outputDir = document.getElementById('outputDir2').value;
+    const charset = document.getElementById('charsetSelect').value;
+    const exportGroupSize = parseInt(document.getElementById('exportGroupSize').value) || 500;
+    if (!outputDir) { showToast('请填写输出目录', 'error'); return; }
+    showLoading('导出差集TXT...');
+    try {
+        const data = await apiRequest('/api/generate/diff_groups', { method: 'POST', body: JSON.stringify({ ttf_path: ttfPath, charset, output_dir: outputDir, export_group_size: exportGroupSize }) });
+        hideLoading();
+        if (data.export_file) {
+            showToast(`已导出: ${data.export_file}`, 'success');
+        } else {
+            showToast('导出失败', 'error');
+        }
+    } catch (e) { hideLoading(); }
+}
+
 function toggleAllGroups(checked) {
     document.querySelectorAll('.group-cb').forEach(cb => cb.checked = checked);
     updateGroupCount();
@@ -194,7 +213,14 @@ async function processNextGroup(outputDir) {
         max_rounds: parseInt(document.getElementById('maxRounds').value),
         threshold: parseFloat(document.getElementById('threshold').value),
         cfg: parseFloat(document.getElementById('cfg').value),
+        resolution: parseInt(document.getElementById('resolution')?.value || '256'),
+        ref_size: parseInt(document.getElementById('refSize')?.value || '128'),
+        batch_size: parseInt(document.getElementById('batchSize')?.value || '64'),
     };
+    const refFont = document.getElementById('refFont')?.value || '';
+    const extFont = document.getElementById('extFont')?.value || '';
+    if (refFont) commonParams.ref_font = refFont;
+    if (extFont) commonParams.ext_font = extFont;
     if (!commonParams.checkpoint) { showToast('请填写AI模型路径', 'error'); groupGenerating = false; return; }
 
     appendLog(document.getElementById('genLog'), `▶ 开始第 ${group.index + 1} 组 (${group.chars.length} 字)`);
@@ -253,7 +279,12 @@ function collectParams() {
     }
     if (!chars.length) { showToast('没有需要生成的字符', 'error'); return null; }
     if (!outputDir) { showToast('请填写输出目录', 'error'); return null; }
-    return { chars, output_dir: outputDir, checkpoint, multiplier, max_rounds: maxRounds, threshold, cfg };
+    const refFont = document.getElementById('refFont')?.value || '';
+    const extFont = document.getElementById('extFont')?.value || '';
+    const result = { chars, output_dir: outputDir, checkpoint, multiplier, max_rounds: maxRounds, threshold, cfg };
+    if (refFont) result.ref_font = refFont;
+    if (extFont) result.ext_font = extFont;
+    return result;
 }
 
 function openResultDir() {
